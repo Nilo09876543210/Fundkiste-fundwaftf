@@ -11,19 +11,20 @@ st.set_page_config(page_title="Fundkiste Bild-Erkennung", layout="centered")
 # 2. Modell und Labels laden
 @st.cache_resource
 def load_keras_model():
+    # Dateinamen exakt nach deiner Angabe
     model_path = "keras_model(1).h5"
-    label_path = "labels.txt"
+    label_path = "labels(1).txt"
     
     # Überprüfen, ob die Model-Datei existiert
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden. Bitte lade sie in dein Repo hoch.")
+        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden. Bitte prüfen!")
     
     # Laden des Modells
     model = load_model(model_path, compile=False)
     
     # Überprüfen, ob die Labels existieren
     if not os.path.exists(label_path):
-        raise FileNotFoundError(f"Datei '{label_path}' nicht gefunden.")
+        raise FileNotFoundError(f"Datei '{label_path}' nicht gefunden. Bitte prüfen!")
         
     with open(label_path, "r") as f:
         class_names = f.readlines()
@@ -35,7 +36,7 @@ try:
     model, class_names = load_keras_model()
 except Exception as e:
     st.error(f"❌ Fehler: {e}")
-    st.info("Hinweis: Die Dateien müssen im Hauptverzeichnis deines Repos liegen.")
+    st.info("Hinweis: Beide Dateien müssen im Hauptverzeichnis deines Repos liegen.")
     st.stop()
 
 # 3. Benutzeroberfläche (UI)
@@ -75,7 +76,7 @@ if img_file is not None:
 
     # Ergebnis-Anzeige
     st.divider()
-    # Entfernt führende Zahlen (z.B. "0 Schlüssel" -> "Schlüssel")
+    # Entfernt Index-Nummern am Anfang des Labels (z.B. "0 Schlüssel" -> "Schlüssel")
     display_name = class_name[2:] if class_name[0].isdigit() else class_name
     st.subheader(f"Ergebnis: {display_name}")
     st.progress(float(confidence_score))
