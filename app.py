@@ -15,14 +15,14 @@ def load_keras_model():
     model_path = "keras_model(1).h5"
     label_path = "labels(1).txt"
     
-    # Check ob Modell da ist
+    # Check ob Modell existiert
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden.")
     
     # Modell laden
     model = load_model(model_path, compile=False)
     
-    # Check ob Labels da sind
+    # Check ob Labels existieren
     if not os.path.exists(label_path):
         raise FileNotFoundError(f"Datei '{label_path}' nicht gefunden.")
         
@@ -54,7 +54,7 @@ if img_file is not None:
     image = Image.open(img_file).convert("RGB")
     st.image(image, use_container_width=True)
 
-    # Vorbereiten
+    # Bild für Modell vorbereiten
     size = (224, 224)
     image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
     img_array = np.asarray(image)
@@ -63,13 +63,13 @@ if img_file is not None:
     data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
     data[0] = normalized_image_array
 
-    # Analyse
+    # Analyse durchführen
     prediction = model.predict(data)
     index = np.argmax(prediction)
     class_name = class_names[index].strip()
     confidence_score = prediction[0][index]
 
-    # Ergebnis
+    # Ergebnis anzeigen
     st.divider()
     display_name = class_name[2:] if class_name[0].isdigit() else class_name
     st.subheader(f"Objekt: {display_name}")
