@@ -16,7 +16,7 @@ def load_keras_model():
     
     # Überprüfen, ob die Model-Datei existiert
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden. Bitte lade sie in dein GitHub-Repo hoch.")
+        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden. Bitte lade sie in dein Repo hoch.")
     
     # Laden des Modells
     model = load_model(model_path, compile=False)
@@ -35,7 +35,7 @@ try:
     model, class_names = load_keras_model()
 except Exception as e:
     st.error(f"❌ Fehler: {e}")
-    st.info("Hinweis: Stelle sicher, dass die Dateien im Hauptverzeichnis deines Repos liegen.")
+    st.info("Hinweis: Die Dateien müssen im Hauptverzeichnis deines Repos liegen.")
     st.stop()
 
 # 3. Benutzeroberfläche (UI)
