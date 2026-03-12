@@ -11,73 +11,66 @@ st.set_page_config(page_title="Fundkiste Bild-Erkennung", layout="centered")
 # 2. Modell und Labels laden
 @st.cache_resource
 def load_keras_model():
-    # Dateinamen exakt nach deiner Angabe
+    # Dateinamen exakt ohne Leerzeichen vor der Klammer
     model_path = "keras_model(1).h5"
     label_path = "labels(1).txt"
     
-    # Überprüfen, ob die Model-Datei existiert
+    # Check ob Modell da ist
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden. Bitte prüfen!")
+        raise FileNotFoundError(f"Datei '{model_path}' nicht gefunden.")
     
-    # Laden des Modells
+    # Modell laden
     model = load_model(model_path, compile=False)
     
-    # Überprüfen, ob die Labels existieren
+    # Check ob Labels da sind
     if not os.path.exists(label_path):
-        raise FileNotFoundError(f"Datei '{label_path}' nicht gefunden. Bitte prüfen!")
+        raise FileNotFoundError(f"Datei '{label_path}' nicht gefunden.")
         
     with open(label_path, "r") as f:
         class_names = f.readlines()
         
     return model, class_names
 
-# App-Logik starten
+# App starten
 try:
     model, class_names = load_keras_model()
 except Exception as e:
     st.error(f"❌ Fehler: {e}")
-    st.info("Hinweis: Beide Dateien müssen im Hauptverzeichnis deines Repos liegen.")
     st.stop()
 
-# 3. Benutzeroberfläche (UI)
+# 3. Benutzeroberfläche
 st.title("🔍 Fundkiste Bild-Erkennung")
-st.write("Identifiziere Objekte aus der Fundkiste.")
 
-option = st.radio("Bildquelle wählen:", ("Kamera nutzen", "Bild hochladen"))
+option = st.radio("Quelle:", ("Kamera", "Upload"))
 
 img_file = None
-if option == "Kamera nutzen":
-    img_file = st.camera_input("Foto aufnehmen")
+if option == "Kamera":
+    img_file = st.camera_input("Foto")
 else:
-    img_file = st.file_uploader("Bild auswählen...", type=["jpg", "jpeg", "png"])
+    img_file = st.file_uploader("Bild wählen", type=["jpg", "jpeg", "png"])
 
-# 4. Bildverarbeitung und Vorhersage
+# 4. Vorhersage
 if img_file is not None:
-    # Bild laden
     image = Image.open(img_file).convert("RGB")
-    st.image(image, caption="Eingabebild", use_container_width=True)
+    st.image(image, use_container_width=True)
 
-    # Vorbereitung für das Modell (Größe 224x224)
+    # Vorbereiten
     size = (224, 224)
     image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
     img_array = np.asarray(image)
-    
-    # Normalisierung der Daten
     normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1
+    
     data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
     data[0] = normalized_image_array
 
-    # Vorhersage (Inferenz)
-    with st.spinner('Objekt wird erkannt...'):
-        prediction = model.predict(data)
-        index = np.argmax(prediction)
-        class_name = class_names[index].strip()
-        confidence_score = prediction[0][index]
+    # Analyse
+    prediction = model.predict(data)
+    index = np.argmax(prediction)
+    class_name = class_names[index].strip()
+    confidence_score = prediction[0][index]
 
-    # Ergebnis-Anzeige
+    # Ergebnis
     st.divider()
-    # Entfernt Index-Nummern am Anfang des Labels (z.B. "0 Schlüssel" -> "Schlüssel")
     display_name = class_name[2:] if class_name[0].isdigit() else class_name
-    st.subheader(f"Ergebnis: {display_name}")
-    st.progress(float(confidence_score))
+    st.subheader(f"Objekt: {display_name}")
     st.write(f"Sicherheit: {100 * confidence_score:.2f}%")
