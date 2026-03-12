@@ -17,9 +17,9 @@ def load_keras_model():
     
     # Überprüfung, ob die Datei im Hauptverzeichnis existiert
     if not os.path.exists(model_path):
-        raise FileNotFoundError(f"Die Datei '{model_path}' wurde nicht gefunden. Bitte prüfe den Namen im GitHub-Repo.")
+        raise FileNotFoundError(f"Die Datei '{model_path}' wurde nicht im Repository gefunden. Bitte prüfe den Namen bei GitHub.")
     
-    # Laden des Keras-Modells
+    # Laden des Modells (compile=False verhindert Fehler bei benutzerdefinierten Metriken)
     model = load_model(model_path, compile=False)
     
     if not os.path.exists(label_path):
@@ -35,12 +35,12 @@ try:
     model, class_names = load_keras_model()
 except Exception as e:
     st.error(f"❌ Fehler: {e}")
-    st.info("Hinweis: Achte darauf, dass 'keras_model(1).h5' direkt neben dieser app.py Datei liegt.")
+    st.info("Hinweis: Stelle sicher, dass die Datei 'keras_model(1).h5' direkt im Hauptordner deines GitHub-Repos liegt.")
     st.stop()
 
 # 2. Benutzeroberfläche
 st.title("🔍 Fundkiste Bild-Erkennung")
-st.write("Lade ein Bild hoch oder nutze die Kamera, um ein Objekt zu identifizieren.")
+st.write("Identifiziere Objekte aus der Fundkiste per Kamera oder Upload.")
 
 option = st.radio("Quelle wählen:", ("Kamera nutzen", "Bild hochladen"))
 
@@ -52,4 +52,33 @@ else:
 
 # 3. Vorhersage-Berechnung
 if img_file is not None:
-    # Bild öffnen und vorbere
+    # Bild öffnen und in RGB konvertieren
+    image = Image.open(img_file).convert("RGB")
+    st.image(image, caption="Eingabebild", use_container_width=True)
+
+    # Bildgröße für das Modell anpassen (224x224 ist Standard für Teachable Machine)
+    size = (224, 224)
+    image = ImageOps.fit(image, size, Image.Resampling.LANCZOS)
+    img_array = np.asarray(image)
+    
+    # Normalisierung der Pixelwerte auf den Bereich [-1, 1]
+    normalized_image_array = (img_array.astype(np.float32) / 127.5) - 1
+    
+    # Erstelle das Array in der Form, die das Modell erwartet (Batch-Größe 1)
+    data = np.ndarray(shape=(1, 224, 224, 3), dtype=np.float32)
+    data[0] = normalized_image_array
+
+    # Vorhersage durchführen
+    with st.spinner('Analysiere Bild...'):
+        prediction = model.predict(data)
+        index = np.argmax(prediction)
+        class_name = class_names[index].strip()
+        confidence_score = prediction[0][index]
+
+    # Ergebnis-Anzeige
+    st.divider()
+    # Entfernt führende Nummern aus dem Label (z.B. "0 Schlüssel" -> "Schlüssel")
+    display_name = class_name[2:] if class_name[0].isdigit() else class_name
+    st.subheader(f"Ergebnis: {display_name}")
+    st.progress(float(confidence_score))
+    st.write(f"Konfidenz: {100 * confidence_score:.2f}%")
